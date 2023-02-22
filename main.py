@@ -1,8 +1,14 @@
 from flask import Flask, request
 import files_io
-import xlsxwriter
+import scraper
 
 app = Flask(__name__)
+
+'''
+["7721793895",
+"7736050003",
+"7710140679"]
+'''
 
 @app.route("/tax_id/", methods=['POST'])
 def tax_id():
@@ -10,6 +16,7 @@ def tax_id():
     path = 'file.txt'
     files_io.write_json_array(data, path)
     files_io.timestamp()
+    scraper.bs4_scraper()
     return "Tax id received!"
 
 @app.route("/synapse_responce/", methods=['POST'])
@@ -20,7 +27,7 @@ def synapse_responce():
     files_io.write_json_array(data, path)
     return "Json received succesfully!"
 
-@app.route("/write_xlsx/", methods=['POST'])
-def write_xlsx():
-    files_io.write_xlsx()
-    return "Write is done!"
+# @app.route("/write_xlsx/", methods=['POST'])
+# def write_xlsx():
+#     files_io.write_xlsx()
+#     return "Write is done!"
