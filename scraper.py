@@ -1,12 +1,18 @@
 from bs4 import BeautifulSoup
+from files_io import tax_id_check
 import requests
 import json
+import xlsxwriter
+import openpyxl
 
-def bs4_scraper():
-    with open('file.txt','r') as file:
+import bs4_sandbox
+
+# получаем html по списку ИНН
+def bs4_scraper(path : str):
+    with open(path,'r') as file:
         data = file.read()
         tax_id_list = json.loads(data)
-
+    
     for i in tax_id_list:
         url = f'https://synapsenet.ru/searchorganization/proverka-kontragentov?query={i}'
         page = requests.get(url)
@@ -17,43 +23,71 @@ def bs4_scraper():
         file.write(str(soup.contents))
     return
 
-bs4_scraper()
+bs4_scraper('file.txt')
 
-import xlsxwriter
-
-#Передаём сюда словарь сразу со всеми объектами
 def write_xlsx(data):
-    # Create a workbook and add a worksheet.
-    print(data)
-    workbook = xlsxwriter.Workbook('final/report.xlsx')
-    worksheet = workbook.add_worksheet()
+    try:
+        workbook = openpyxl.load_workbook('final/report.xlsx')
+    except Exception as ex:
+        print(ex)
+        workbook = openpyxl.Workbook(write_only=False)
+    
+    worksheet = workbook.active
 
-    # Start from the first cell. Rows and columns are zero indexed.
-    col = 0
+    # Если лист пустой добавляем заголовки
+    row = worksheet.max_row
+    if row == 1:
+        for idx, column in enumerate(data.keys()):
+            worksheet.cell(row=row, column=idx+1, value=column)
 
-    #если в файле есть названия колонок, то оставляем как есть, если нет то вставляем из первого файла в списке
-    columns = []
-    rows_count = worksheet.dim_rowmax
-    if rows_count == None:
-        rows_count = 0
-        for i in data.keys():
-            worksheet.write(0, col, i)
-            columns.append(i)
-            col += 1
+    # Добавляем данные в свободную строку
+    row += 1
+    for idx, value in enumerate(data.values()):
+        worksheet.cell(row=row, column=idx+1, value=value)
 
-    for col_idx, column in enumerate(columns):
-        value = data.get(column, None)
-        if value is not None:
-            worksheet.write(rows_count + 1, col_idx, value)
-
-#/////////////////////////////////////////////////////////////////////////////
+    #/////////////////////////////////////////////////////////////////////////////
     '''
     если есть, то добавляем новые данные
     ели данные пустые, то меняем цвет ячеек
     '''
-#/////////////////////////////////////////////////////////////////////////////
+    #/////////////////////////////////////////////////////////////////////////////
     # Iterate over the data and write it out row by row.
-    
-    workbook.close()
-    
+
+    # Сохраняем книгу
+    workbook.save('final/report.xlsx')
     return
+
+def scraper_main_loop(path):
+    with open(path,'r') as file:
+        data = file.read()
+        tax_id_list = json.loads(data)
+    
+    # Проходим по списку ИНН
+    for tax_id in tax_id_list:
+
+        # Проверяем есть ли данные по этому ИНН в файле Эксель
+        if not tax_id_check('final/report.xlsx', tax_id):
+
+            # Запрашиваем и получаем HTML документ
+            url = f'https://synapsenet.ru/searchorganization/proverka-kontragentov?query={tax_id}'
+
+            #  Получаем страницу по ссылке
+            page = requests.get(url)
+            # Если получили страницу, то парсим
+#///////////////////////////////////////////////////////////////////////////////
+            # Если не получили, то всталяем пустую строку и выделяем цветом
+                
+            # Парсим документ и получаем словарь с данными
+            soup = BeautifulSoup(page.content, 'html.parser')
+
+            with open('html.html','w') as file:
+                file.write(str(soup.contents))
+
+            data_dict = bs4_sandbox.html_scraper(soup)
+
+            # Добавляем значения словаря в файл Эксель
+            write_xlsx(data_dict)
+
+    return
+
+# scraper_main_loop('file.txt')
