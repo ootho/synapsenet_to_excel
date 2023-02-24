@@ -14,7 +14,29 @@ def timestamp():
     return
 
 # Проверка есть ли ИНН в файле xlsx
-def tax_id_check(path : str, tax_id : str) -> bool:
+def duplicates_check(path : str, name : str, tax_id : str) -> bool:
+    try:
+        # Загрузка Excel файла
+        wb = openpyxl.load_workbook(filename=path, read_only=True)
+
+        # Получение активного листа
+        sheet = wb.active
+
+        # Получение индекса столбца по заголовку "ИНН"
+        column_num = next(sheet.values).index(name)
+
+        # Перебор ячеек в столбце
+        for row in sheet.iter_rows(min_row=2, min_col=column_num, max_col=column_num):
+            for cell in row:
+                if cell.value == tax_id:
+                    # ИНН найден
+                    return True
+    except Exception as ex:
+        print (ex)
+        # ИНН не найден
+        return False
+
+def kpp_check(kpp : str) -> bool:
     try:
         # Загрузка Excel файла
         wb = openpyxl.load_workbook(filename=path, read_only=True)
