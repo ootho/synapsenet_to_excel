@@ -1,11 +1,5 @@
 venv/
-todo.md
-test_book.xlsm
-test_book.xlsx
-test_01.py
-a.py
-file.txt
-for_excel
-final
-__pycache__
+final/
+__pycache__/
 html.html
+todo.md

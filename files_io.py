@@ -1,20 +1,42 @@
-import json, time, xlsxwriter, openpyxl
+import openpyxl
+from openpyxl.styles import PatternFill
 
-# Записаь списка в json файл
-def write_json_array(json_obj : str, path : str):
-    with open(path, 'w') as file:
-        json.dump(json_obj, file, ensure_ascii = False)
+# Запись данных в xlsx файл
+def write_xlsx(data):
+    # Пробуем открыть файл, если нет, то создаём
+    try:
+        workbook = openpyxl.load_workbook('final/report.xlsx')
+    except Exception as ex:
+        print(ex)
+        workbook = openpyxl.Workbook(write_only=False)
+    
+    # Выбираем страницу
+    worksheet = workbook.active
+
+    # Если лист пустой, то добавляем заголовки
+    row = worksheet.max_row
+    if row == 1:
+        for idx, column in enumerate(data.keys()):
+            worksheet.cell(row=row, column=idx+1, value=column)
+
+    # Добавляем новые данные в первую найденую пустую строку
+    row += 1
+    for idx, value in enumerate(data.values()):
+        cell = worksheet.cell(row=row, column=idx+1, value=value)
+
+        # Если получили только ИНН, значит данные не обнаружены, пишем в таблицу то что есть и выделаем строку цветом
+        if len(data)==1:
+            red_fill = PatternFill(start_color='FFFF0000', end_color='FFFF0000', fill_type='solid')
+            # Присваиваем Fill ячейке
+            cell.fill = red_fill
+
+    # Сохраняем книгу
+    workbook.save('final/report.xlsx')
     return
 
-# Запись времени последнего запроса в файл
-def timestamp():
-    with open('temp_data/last_request_time', 'w') as file:
-        t = str(round(time.time()))
-        file.write(t)
-    return
 
 # Проверка есть ли ИНН в файле xlsx
-def duplicates_check(path : str, name : str, tax_id : str) -> bool:
+def duplicates_check(path : str, name : str, feature : str) -> bool:
     try:
         # Загрузка Excel файла
         wb = openpyxl.load_workbook(filename=path, read_only=True)
@@ -22,40 +44,16 @@ def duplicates_check(path : str, name : str, tax_id : str) -> bool:
         # Получение активного листа
         sheet = wb.active
 
-        # Получение индекса столбца по заголовку "ИНН"
+        # Получение индекса столбца по нужному заголовку (ИНН или КПП)
         column_num = next(sheet.values).index(name)
 
         # Перебор ячеек в столбце
         for row in sheet.iter_rows(min_row=2, min_col=column_num, max_col=column_num):
             for cell in row:
-                if cell.value == tax_id:
-                    # ИНН найден
+                if cell.value == feature:
+                    # Признак найден
                     return True
-    except Exception as ex:
-        print (ex)
-        # ИНН не найден
+    except Exception as x:
+        print (x)
+        # Признак не найден
         return False
-
-def kpp_check(kpp : str) -> bool:
-    try:
-        # Загрузка Excel файла
-        wb = openpyxl.load_workbook(filename=path, read_only=True)
-
-        # Получение активного листа
-        sheet = wb.active
-
-        # Получение индекса столбца по заголовку "ИНН"
-        column_num = next(sheet.values).index('ИНН')
-
-        # Перебор ячеек в столбце
-        for row in sheet.iter_rows(min_row=2, min_col=column_num, max_col=column_num):
-            for cell in row:
-                if cell.value == tax_id:
-                    # ИНН найден
-                    return True
-    except Exception as ex:
-        print (ex)
-        # ИНН не найден
-        return False
-
-# print(tax_id_check('final/report.xlsx', '7721793895'))

@@ -1,58 +1,57 @@
+import time
 from bs4 import BeautifulSoup
-# from scraper import bs4_scraper
-# import requests
-# from scraper import write_xlsx
 
-def html_scraper(soup):
+
+def html_scraper(soup, initial_id):
+    # функция ставит na если ничего не нашли
+    def pick(key_value: dict) -> dict:
+        name, eval_list = list(key_value.items())[0]
+        info = 'na'
+        for i in eval_list:
+            try:
+                info = eval(i, {"soup": soup, "time": time, "initial_id": initial_id})
+                break
+            except Exception:
+                continue
+        return {name: info}
+
     
+    queries=[
+        {"ИНН" : ['soup.find(title="Идентификационный номер налогоплательщика").find_next().text', 
+                  'initial_id']},
+
+        {"КПП" : ['soup.find(title="Код причины постановки на учет").find_next().text']},
+
+        {"ОГРН" : ['soup.find(title="Основной государственный регистрационный номер").find_next().text']},
+
+        {"Название организации" : ['soup.find(class_="oct-full-title").text', 
+                       'soup.title.text.split(',')[0]']},
+
+        {"Статус" : ['soup.find(class_="oc-operating-status").find_next().find_next().text']},
+
+        {"Дата регистрации" : ['soup.find(class_="oc-op-reg-date").text.replace("дата регистрации ", "").strip()']},
+
+        {"Адрес" : ['soup.find(class_="oc-full-adress").text']},
+
+        {"Номер телефона" : ['soup.find(class_="org-contacts-block").find(class_="orgs-open-form").text']},
+
+        {"Электронная почта" : ['soup.find(class_="org-contacts-block").find_next_sibling().find(class_="orgs-open-form").text']},
+
+        {"Последнее изменение адреса" : ['soup.find(class_="org-last-change").text.replace("последнее изменение","").strip()']},
+
+        {"timestamp" : ['str(round(time.time()))']}
+
+    ]
 
     d = {}
+    for query in queries:
+        d.update(pick(query))
 
-
-    # for div in soup.find_all(class_='org-pcl-ogrn'):
-    #     label = div.text.strip().split(' ')[0]
-    #     value = div.find('span').text.strip()
-    #     if label in ["ИНН", "ОГРН", "КПП"]:
-    #         d.update({str(label) : str(value)})
-
-    print(d)
-    d.update({"ИНН" : soup.find(title="Идентификационный номер налогоплательщика").find_next().text})
-
-    try:
-        d.update({"Название" : soup.find(class_="oct-full-title").text})
-    except Exception:
-        d.update({"Название" : soup.title.text.split(',')[0]})
-
-    d.update({"ОГРН" : soup.find(title="Основной государственный регистрационный номер").find_next().text})
-    d.update({"КПП" : soup.find(title="Код причины постановки на учет").find_next().text})
-    d.update({"Статус" : soup.find(class_="oc-operating-status").find_next().find_next().text})
-    d.update({"Дата регистрации" : soup.find(class_="oc-op-reg-date").text.replace('дата регистрации ', '').strip()})
-    d.update({"Адрес" : soup.find(class_="oc-full-adress").text})
-    d.update({"Последнее изменение адреса" : soup.find(class_="org-last-change").text.replace('последнее изменение','').strip()})
-
-    try:
-        info = soup.find(class_="org-contacts-block").find(class_="orgs-open-form").text
-    except Exception:
-        info = 'na'
-    finally:
-        d.update({"Номер телефона" : info})
-        del info
-        
-    try:
-        info = soup.find(class_="org-contacts-block").find_next_sibling().find(class_="orgs-open-form").text
-    except Exception:
-        info = 'na'
-    finally:
-        d.update({"Электронная почта" : info})
-        del info
+    # d.update({"name" : query})
 
     return d
 
-# Тест
+# Для отладки
 # with open('html.html','r') as file:
-#     page = file.read()
-
-# soup = BeautifulSoup(page, 'html.parser')
-# html_scraper(soup)
-
-# bs4_scraper('file.txt')
+#     soup1 = BeautifulSoup(file.read(), 'html.parser')
+#     html_scraper(soup1)
