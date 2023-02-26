@@ -15,7 +15,6 @@ def html_scraper(soup, initial_id):
                 continue
         return {name: info}
 
-    
     queries=[
         {"ИНН" : ['soup.find(title="Идентификационный номер налогоплательщика").find_next().text', 
                   'initial_id']},
@@ -25,7 +24,7 @@ def html_scraper(soup, initial_id):
         {"ОГРН" : ['soup.find(title="Основной государственный регистрационный номер").find_next().text']},
 
         {"Название организации" : ['soup.find(class_="oct-full-title").text', 
-                       'soup.title.text.split(',')[0]']},
+                       '"na" if "Проверка контрагента" in soup.title.text.split(",")[0] else soup.title.text.split(",")[0]']},
 
         {"Статус" : ['soup.find(class_="oc-operating-status").find_next().find_next().text']},
 
@@ -53,5 +52,5 @@ def html_scraper(soup, initial_id):
 
 # Для отладки
 # with open('html.html','r') as file:
-#     soup1 = BeautifulSoup(file.read(), 'html.parser')
-#     html_scraper(soup1)
+#     soup1 = BeautifulSoup(file.read(), 'lxml')
+#     print(html_scraper(soup1, '7736050003'))

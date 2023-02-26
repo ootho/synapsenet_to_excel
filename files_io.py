@@ -24,8 +24,8 @@ def write_xlsx(data):
     for idx, value in enumerate(data.values()):
         cell = worksheet.cell(row=row, column=idx+1, value=value)
 
-        # Если получили только ИНН, значит данные не обнаружены, пишем в таблицу то что есть и выделаем строку цветом
-        if len(data)==1:
+        # Если получили только ИНН и timestamp, значит данные не обнаружены, пишем в таблицу то что есть и выделаем строку цветом
+        if len([x for x in list(data.values()) if x!='na'])==2:
             red_fill = PatternFill(start_color='FFFF0000', end_color='FFFF0000', fill_type='solid')
             # Присваиваем Fill ячейке
             cell.fill = red_fill

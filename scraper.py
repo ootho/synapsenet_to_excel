@@ -14,7 +14,7 @@ def scraper_main_loop(tax_id_list):
             #  Получаем страницу и преобразуем в объект bs4
             url = f'https://synapsenet.ru/searchorganization/proverka-kontragentov?query={tax_id}'
             page = requests.get(url)
-            soup = BeautifulSoup(page.content, 'html.parser')
+            soup = BeautifulSoup(page.content, 'lxml')
             # Проверяем сколько организаций мы нашли по ИНН
             soups = []
             check_if_many = soup.find_all(class_="org-pcl-go-but")
@@ -26,7 +26,7 @@ def scraper_main_loop(tax_id_list):
                 for ref in hrefs:
                     url = f'https://synapsenet.ru/searchorganization/proverka-kontragentov?query={ref}'
                     page = requests.get(url)
-                    soup = BeautifulSoup(page.content, 'html.parser')
+                    soup = BeautifulSoup(page.content, 'lxml')
                     # Добавляем объекты bs4 в список soups
                     soups.append(soup)
             else:
@@ -36,10 +36,7 @@ def scraper_main_loop(tax_id_list):
             # Записываем данные в файл для отладки
             # with open('html.html','w') as file:
             #     file.write(str(soup.contents))
-
-            # with open('html.html','r') as file:
-            #     soup1 = BeautifulSoup(file.read(), 'html.parser')
-
+            # exit
             for one_soup in soups:
                 # Собираем необходимые данные с помощью bs4 и получаем словарь
                 data_dict = bs4_sandbox.html_scraper(one_soup, tax_id)
@@ -52,4 +49,4 @@ def scraper_main_loop(tax_id_list):
                 # Добавляем значения словаря в файл Эксель
                 if not duplicates: write_xlsx(data_dict)
 
-    return
+    return "Tax IDs received, the report has been sent!"
