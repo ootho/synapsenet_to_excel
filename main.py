@@ -1,16 +1,54 @@
-from flask import Flask, request
-import scraper
+from bs4 import BeautifulSoup
+from files_io import duplicates_check, write_xlsx, preparing_to_upload
+import requests
+import bs4_sandbox
 
-app = Flask(__name__)
+def main_loop(tax_id_list):
+    # Проходим по списку ИНН
+    for tax_id in tax_id_list:
+        # Проверяем есть ли данные по этому ИНН в файле Эксель
+        if not duplicates_check('xlsx/report.xlsx', 'ИНН', tax_id):
+            #  Получаем страницу и преобразуем в объект bs4
+            url = f'https://synapsenet.ru/searchorganization/proverka-kontragentov?query={tax_id}'
+            page = requests.get(url)
+            soup = BeautifulSoup(page.content, 'lxml')
+            # Проверяем сколько организаций мы нашли по ИНН
+            soups = []
+            check_if_many = soup.find_all(class_="org-pcl-go-but")
+            if len(check_if_many)>0:
+                # Если мы нашли более одной организации по ИНН, то извлекаем ссылки на них
+                hrefs = [i['href'] for i in soup.find_all(class_="org-pcl-go-but")]
 
-@app.route("/tax_id/", methods=['POST'])
-def tax_id():
-    tax_id_list = request.get_json()
-    # получаем список ИНН и передаём в основной цикл
-    try:
-        scraper.scraper_main_loop(tax_id_list)
-        # возвращаем ответ об успешной отправке данных
-        return "Tax IDs received, the report has been sent!"
-    except Exception as x:
-        # возвращаем ошибку
-        return x
+                # Пробегаем по спику ссылок
+                for ref in hrefs:
+                    url = f'https://synapsenet.ru/searchorganization/proverka-kontragentov?query={ref}'
+                    page = requests.get(url)
+                    soup = BeautifulSoup(page.content, 'lxml')
+                    # Добавляем объекты bs4 в список soups
+                    soups.append(soup)
+            else:
+                # Если по ИНН найдена одна организация, то добавляем её в список
+                soups.append(soup)
+            
+            # Записываем данные в файл для отладки
+            # with open('html.html','w') as file:
+            #     file.write(str(soup.contents))
+            # exit
+            
+            for one_soup in soups:
+                # Собираем необходимые данные с помощью bs4 и получаем словарь
+                data_dict = bs4_sandbox.html_scraper(one_soup, tax_id)
+                
+                # Если несколько организаций с одним ИНН проверяем по КПП:
+                duplicates = False
+                if len(check_if_many)>0:
+                    duplicates = duplicates_check('xlsx/report.xlsx', 'КПП', data_dict['КПП'])
+                     
+                # Добавляем значения словаря в файл Эксель
+                if not duplicates:
+                    write_xlsx(data_dict)
+
+    # После того, как всё записали отправляем файл в другую папку
+    preparing_to_upload()
+
+    return "Tax IDs received, the report has been sent!"
