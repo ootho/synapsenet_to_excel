@@ -2,7 +2,6 @@ import time, re
 from bs4 import BeautifulSoup
 
 def html_scraper(soup, initial_id):
-    # функция ставит na если ничего не нашли
     def pick(key_value: dict) -> dict:
         name, eval_list = list(key_value.items())[0]
         info = ''
@@ -64,16 +63,12 @@ def html_scraper(soup, initial_id):
         {"Топ 5 поставщиков" : ['str([i.text for i in soup.find("div", {"class":"osb-top-script", "data-toptype":"1"}).find(class_="oc-top-table").find_all("a", {"class":"org-link"})])']},
 
         {"Топ 5 заказчиков" : ['str([i.text for i in soup.find("div", {"class":"osb-top-script", "data-toptype":"2"}).find(class_="oc-top-table").find_all("a", {"class":"org-link"})])']}
-
-
-
         
     ]
 
     d = {}
     for query in queries:
         d.update(pick(query))
-
 
     try:
         for i in soup.find(class_="org-card-right-column").find_all(class_="org-card-right"):
@@ -94,11 +89,10 @@ def html_scraper(soup, initial_id):
                 try:
                     name = ["Баланс ","Выручка ", "Прибыль "][n] + i.find("td").text
                     info = i.find("td").find_next().text.replace('\xa0','')
-                    d.update({name : info})
+                    d.update({name : float(info)})
                 except Exception as x:
                     # print(x)
                     pass
-
 
     for n in range (1,5):
         try:
@@ -137,7 +131,6 @@ def html_scraper(soup, initial_id):
         # print(x)
         pass
 
-
     for n in ["Связанные организации", "Правопреемство", "Дочерние организации", "Филиалы"]:
         try:
             info = soup.find(text=n.lower()).find_next().text
@@ -146,7 +139,6 @@ def html_scraper(soup, initial_id):
             # print(x)
             pass
            
-
     for n in ["Связанные организации", "Правопреемство", "Дочерние организации", "Филиалы"]:
         try:
             info = soup.find(text=n.lower()).find_next().text
@@ -160,6 +152,6 @@ def html_scraper(soup, initial_id):
     return d
 
 # Для отладки
-with open('html.html','r') as file:
-    soup1 = BeautifulSoup(file.read(), 'lxml')
-    print(html_scraper(soup1, '7736050003'))
+# with open('html.html','r') as file:
+#     soup1 = BeautifulSoup(file.read(), 'lxml')
+#     print(html_scraper(soup1, '7736050003'))

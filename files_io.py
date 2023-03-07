@@ -1,11 +1,13 @@
-import openpyxl, os, time
+import openpyxl, os, time, shutil
 from openpyxl.styles import PatternFill
 
-# Запись данных в xlsx файл
-def write_xlsx(data):
+BASE_DIR = "/mnt/d/WORK/Coding/synapsenet_to_excel"
+
+# Запись данных в xls2m файл
+def write_xlsm(data):
     # Пробуем открыть файл, если нет, то создаём
     try:
-        workbook = openpyxl.load_workbook('xlsx/report.xlsx')
+        workbook = openpyxl.load_workbook(filename='wip/report.xlsm', read_only=False, keep_vba=True)
     except Exception as ex:
         print(ex)
         workbook = openpyxl.Workbook(write_only=False)
@@ -36,15 +38,14 @@ def write_xlsx(data):
             cell.fill = red_fill
 
     # Сохраняем книгу
-    workbook.save('xlsx/report.xlsx')
+    workbook.save('wip/report.xlsm')
     return
 
-
-# Проверка есть ли ИНН в файле xlsx, true - дубликат, false - нет
+# Проверка есть ли ИНН в файле xlsm, true - дубликат, false - нет
 def duplicates_check(path : str, name : str, feature : str) -> bool:
     try:
         # Загрузка Excel файла
-        wb = openpyxl.load_workbook(filename=path, read_only=True)
+        wb = openpyxl.load_workbook(filename=path, read_only=True, keep_vba=True)
 
         # Получение активного листа
         sheet = wb.active
@@ -59,32 +60,67 @@ def duplicates_check(path : str, name : str, feature : str) -> bool:
                     # Признак найден
                     return True
     except Exception as x:
-        print (x)
+        # print (x)
         # Признак не найден
         return False
 
 def preparing_to_upload():
-    wb = openpyxl.load_workbook(filename='xlsx/report.xlsx')
+    wb = openpyxl.load_workbook(filename='wip/report.xlsm', read_only=False, keep_vba=True)
     ws = wb.active
 
+    # сортируем по алфавиту после 22го столбца
+    columns = [cell.value for cell in ws[1][22:]]
+    columns_sorted = reversed(sorted(columns))
+    for column in columns_sorted:
+        ws.insert_cols(23)
+        col_upd = [cell.value for cell in ws[1][23:]]
+        old_index = col_upd.index(column) + 1 + 23
+        col = openpyxl.utils.get_column_letter(old_index)
+        end_row = ws.max_row    
+        cell_range = f"{col}1:{col}{end_row}"
+        ws.move_range(cell_range, cols=23-old_index)
+        ws.delete_cols(old_index)
+    
+    # Выбираем столбец с выручкой за последний год и перемещаем на место второго столбца
+    end_row = ws.max_row    
+    ws.insert_cols(2)
+    last_revenue = sorted([cell.value for cell in ws[1] if "Выручка" in str(cell.value)])[-1]
+    old_index = [i for i, cell in enumerate(ws[1]) if last_revenue in str(cell.value)][0] + 1
+    col = openpyxl.utils.get_column_letter(old_index)
+    cell_range = f"{col}1:{col}{end_row}"
+    ws.move_range(cell_range, cols=2-old_index)
+    ws.delete_cols(old_index)
+
+    # Удаляем столбец timestamp
     for row in ws.iter_rows(min_row=1, max_row=ws.max_row, min_col=1, max_col=ws.max_column):
         for cell in row:
             if cell.value == 'timestamp':
                 ws.delete_cols(cell.column)
 
-    wb.save('sent/report.xlsx')
+    wb.save('sent/report.xlsm')
 
 def not_exist_or_modified_more_than_day_ago():
     try:
         now = time.time()
-        mtime = os.path.getmtime('/mnt/d/WORK/Coding/synapsenet_to_excel/xlsx/report.xlsx')
-        return (now - mtime) > 10 #(24 * 60 * 60) 
+        filepath = f"{BASE_DIR}/wip/report.xlsm"
+        mtime = os.path.getmtime(filepath)
+        return (now - mtime) > (24 * 60 * 60) 
     except Exception as x:
         # print(x)
         return True
     
 def delete_file():
     try:
-        os.remove('/mnt/d/WORK/Coding/synapsenet_to_excel/xlsx/report.xlsx')
+        filepath = f"{BASE_DIR}/wip/report.xlsm"
+        os.remove(filepath)
     except Exception as x:
-        print(x)
+        # print(x)
+        pass
+
+def copy_template():
+    src_file = f"{BASE_DIR}/template/template.xlsm"
+    dst_dir  = f"{BASE_DIR}/wip/report.xlsm"
+    shutil.copy(src_file, dst_dir)
+
+# preparing_to_upload()
+# copy_template()
