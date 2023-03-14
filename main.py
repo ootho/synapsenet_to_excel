@@ -1,5 +1,6 @@
 import os
 import requests
+import time
 
 import bs4_sandbox
 from bs4 import BeautifulSoup
@@ -10,7 +11,7 @@ URL = 'https://synapsenet.ru/searchorganization/proverka-kontragentov?query='
 
 def main_loop(tax_id_list, date):
     # Задержка чтобы избежать блокировки со стороны сайта
-    # time.sleep(2)
+    time.sleep(2)
     # Проходим по списку ИНН
     for idx, tax_id in enumerate(tax_id_list):
         print(f'{idx}\t{tax_id}')
@@ -32,7 +33,7 @@ def main_loop(tax_id_list, date):
                 # Пробегаем по спику ссылок
                 for ref in hrefs:
                     # Задержка чтобы избежать блокировки со стороны сайта
-                    # time.sleep(2)
+                    time.sleep(2)
                     url = f'{URL}{ref}'
                     page = requests.get(url)
                     soup = BeautifulSoup(page.content, 'lxml')
