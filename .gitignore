@@ -1,5 +1,5 @@
 venv/
 __pycache__/
-html/*
 todo.md
 test_inn.py
+test_inn.xls
