@@ -1,1 +1,1 @@
-Parser on a Flask that works by requests and collect all results into .xlsx file.
+Парсер на `Flask` который работает по запросу и собирает данные`.xlsx` таблицу.
